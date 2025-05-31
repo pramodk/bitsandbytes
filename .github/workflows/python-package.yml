@@ -33,12 +33,6 @@ jobs:
         include:
           - os: ubuntu-22.04
             arch: x86_64
-          - os: ubuntu-22.04-arm
-            arch: aarch64
-          - os: windows-latest
-            arch: x86_64
-          - os: macos-latest
-            arch: arm64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -56,68 +50,16 @@ jobs:
           name: shared_library_${{ matrix.os }}_${{ matrix.arch }}
           path: output/*
           retention-days: 7
-  ##
-  # This job matrix builds the CUDA versions of the libraries for platforms that support CUDA (Linux x64/aarch64 + Windows x64)
-  ##
-  build-shared-libs-cuda:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-22.04, ubuntu-22.04-arm, windows-latest]
-        include:
-          - os: ubuntu-22.04
-            arch: x86_64
-          - os: ubuntu-22.04-arm
-            arch: aarch64
-          - os: windows-latest
-            arch: x86_64
-        cuda_version:
-          ["11.8.0", "12.0.1", "12.1.1", "12.2.2", "12.3.2", "12.4.1", "12.5.1", "12.6.3", "12.8.1"]
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@v4
-        # Windows: We install Cuda on the agent (slow)
-      - uses: Jimver/cuda-toolkit@v0.2.22
-        if: startsWith(matrix.os, 'windows')
-        id: cuda-toolkit
-        with:
-          cuda: ${{ matrix.cuda_version }}
-          method: "network"
-          sub-packages: '["nvcc","cudart","cusparse","cublas","thrust","nvrtc_dev","cublas_dev","cusparse_dev"]'
-          linux-local-args: '["--toolkit"]'
-          use-github-cache: false
-      - name: Setup MSVC
-        if: startsWith(matrix.os, 'windows')
-        uses: ilammy/msvc-dev-cmd@v1.13.0 # to use cl
-      - name: Build C++
-        run: bash .github/scripts/build-cuda.sh
-        env:
-          build_os: ${{ matrix.os }}
-          build_arch: ${{ matrix.arch }}
-          cuda_version: ${{ matrix.cuda_version }}
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: shared_library_cuda_${{ matrix.os }}_${{ matrix.arch }}_${{ matrix.cuda_version }}
-          path: output/*
-          retention-days: 7
 
   build-wheels:
     needs:
       - build-shared-libs
-      - build-shared-libs-cuda
     strategy:
       matrix:
-        os: [ubuntu-22.04, ubuntu-22.04-arm, windows-latest, macos-latest]
+        os: [ubuntu-22.04]
         include:
           - os: ubuntu-22.04
             arch: x86_64
-          - os: ubuntu-22.04-arm
-            arch: aarch64
-          - os: windows-latest
-            arch: x86_64
-          - os: macos-latest
-            arch: arm64
         # The specific Python version is irrelevant in this context as we are only packaging non-C extension
         # code. This ensures compatibility across Python versions, including Python 3.9, as compatibility is
         # dictated by the packaged code itself, not the Python version used for packaging.
@@ -287,12 +229,10 @@ jobs:
     needs: build-wheels
     strategy:
       matrix:
-        os: [ubuntu-22.04, ubuntu-22.04-arm]
+        os: [ubuntu-22.04]
         include:
           - os: ubuntu-22.04
             arch: x86_64
-          - os: ubuntu-22.04-arm
-            arch: aarch64
     runs-on: ${{ matrix.os }}
     env:
       PIP_DISABLE_PIP_VERSION_CHECK: 1
