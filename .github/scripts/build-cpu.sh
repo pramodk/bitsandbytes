@@ -4,6 +4,9 @@ declare build_os
 
 set -xeuo pipefail
 
+ls /usr/lib/x86_64-linux-gnu/*
+strings /usr/lib/x86_64-linux-gnu/libstdc++* | grep GLIBCXX
+
 pip install cmake==3.28.3
 
 if [ "${build_os:0:5}" == macos ] && [ "${build_arch}" == aarch64 ]; then
